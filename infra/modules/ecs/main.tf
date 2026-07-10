@@ -10,6 +10,13 @@ resource "aws_security_group" "app" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
   tags = {
     Name = "${var.project_name}-ecs-sg"
   }
@@ -88,7 +95,8 @@ resource "aws_ecs_task_definition" "app" {
       environment = [
         { name = "SPRING_DATASOURCE_URL", value = "jdbc:postgresql://${var.db_endpoint}:5432/${var.db_name}" },
         { name = "SPRING_DATA_REDIS_HOST", value = var.cache_endpoint },
-        { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.cache_port) }
+        { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.cache_port) },
+        { name = "SPRING_DATA_REDIS_SSL_ENABLED", value = "true" }
       ]
       secrets = [
         { name = "SPRING_DATASOURCE_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },
@@ -104,6 +112,11 @@ resource "aws_ecs_task_definition" "app" {
       }
     }
   ])
+
+  runtime_platform {
+    cpu_architecture = "ARM64"
+    operating_system_family = "LINUX"
+  }
 }
 
 resource "aws_ecs_service" "app" {
@@ -114,8 +127,76 @@ resource "aws_ecs_service" "app" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = var.public_subnet_ids
+    subnets          = var.private_subnet_ids
     security_groups  = [aws_security_group.app.id]
-    assign_public_ip = true
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name = var.project_name
+    container_port = 8080
+  }
+
+  depends_on = [aws_lb_listener.app]
+}
+
+resource "aws_security_group" "alb" {
+  name = "${var.project_name}-alb-sg"
+  description = "Allow public HTTP access to the ALB"
+  vpc_id = var.vpc_id
+
+  ingress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.project_name}-alb-sg"
+  }
+}
+
+resource "aws_lb" "app" {
+  name = "${var.project_name}-alb"
+  internal = false
+  load_balancer_type = "application"
+  security_groups = [aws_security_group.alb.id]
+  subnets = var.public_subnet_ids
+}
+
+resource "aws_lb_target_group" "app" {
+  name = "${var.project_name}-tg"
+  port = 8080
+  protocol = "HTTP"
+  vpc_id = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    path = "/actuator/health"
+    protocol = "HTTP"
+    matcher = "200"
+    interval = 30
+    healthy_threshold = 2
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_listener" "app" {
+  load_balancer_arn = aws_lb.app.arn
+  port = 80
+  protocol = "HTTP"
+
+  default_action {
+    type = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
   }
 }

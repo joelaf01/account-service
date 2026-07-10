@@ -29,3 +29,19 @@ output "endpoint" {
 output "port" {
   value = module.cache.port
 }
+
+output "ecr_repository_url" {
+  value = module.ecs.ecr_repository_url
+}
+
+output "ecs_cluster_name" {
+  value = module.ecs.cluster_name
+}
+
+output "ecs_service_name" {
+  value = module.ecs.service_name
+}
+
+output "alb_dns_name" {
+  value = module.ecs.alb_dns_name
+}

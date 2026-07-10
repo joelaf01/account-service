@@ -13,6 +13,11 @@ variable "public_subnet_ids" {
   type        = list(string)
 }
 
+variable "private_subnet_ids" {
+  description = "Private subnet IDs the ECS service will run in"
+  type        = list(string)
+}
+
 variable "image_tag" {
   description = "Tag of the container image to deploy from ECR"
   type        = string

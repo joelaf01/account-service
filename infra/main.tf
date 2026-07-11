@@ -9,6 +9,13 @@ terraform {
       version = "3.8.1"
     }
   }
+
+  backend "s3" {
+    key          = "main/terraform.tfstate"
+    region       = "us-east-1"
+    use_lockfile = true
+    encrypt      = true
+  }
 }
 
 provider "aws" {
@@ -32,23 +39,23 @@ module "database" {
   vpc_id                     = module.vpc.vpc_id
   private_subnet_ids         = module.vpc.private_subnet_ids
   allowed_security_group_ids = [module.ecs.security_group_id]
-  database_name = var.database_name
+  database_name              = var.database_name
 }
 
 module "ecs" {
   source = "./modules/ecs"
 
-  project_name = var.project_name
-  vpc_id       = module.vpc.vpc_id
-  public_subnet_ids = module.vpc.public_subnet_ids
+  project_name       = var.project_name
+  vpc_id             = module.vpc.vpc_id
+  public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
 
-  db_endpoint = module.database.cluster_endpoint
-  db_name = var.database_name
+  db_endpoint   = module.database.cluster_endpoint
+  db_name       = var.database_name
   db_secret_arn = module.database.secret_arn
 
   cache_endpoint = module.cache.endpoint
-  cache_port = module.cache.port
+  cache_port     = module.cache.port
 }
 
 module "vpc" {

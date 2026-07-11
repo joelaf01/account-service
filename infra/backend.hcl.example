@@ -1,0 +1,2 @@
+bucket = "account-service-terraform-state-123456789"
+profile = "terraform-profile"

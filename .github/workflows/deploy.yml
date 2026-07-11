@@ -1,0 +1,67 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_wrapper: true
+
+      - name: Write backend config
+        run: |
+          echo "bucket = \"${{ secrets.TF_STATE_BUCKET }}\"" > backend.hcl
+
+      - name: Terraform Init
+        run: terraform init -backend-config=backend.hcl
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Get ECR repository URL
+        id: ecr
+        run: |
+          echo "url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+
+      - name: Get ECS cluster and service names
+        id: ecs
+        run: |
+          echo "cluster=$(terraform output -raw ecs_cluster_name)" >> "$GITHUB_OUTPUT"
+          echo "service=$(terraform output -raw ecs_service_name)" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push image
+        working-directory: .
+        run: |
+          docker build -t ${{ steps.ecr.outputs.url }}:latest .
+          docker push ${{ steps.ecr.outputs.url }}:latest
+
+      - name: Force new ECS deployment
+        run: |
+          aws ecs update-service \
+            --cluster ${{ steps.ecs.outputs.cluster }} \
+            --service ${{ steps.ecs.outputs.service }} \
+            --force-new-deployment

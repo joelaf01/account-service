@@ -31,6 +31,6 @@ variable "private_subnet_cidrs" {
 
 variable "database_name" {
   description = "Name of the Aurora database"
-  type = string
-  default = "mydatabase"
+  type        = string
+  default     = "mydatabase"
 }

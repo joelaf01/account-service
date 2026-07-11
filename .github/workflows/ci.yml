@@ -9,6 +9,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -26,8 +27,13 @@ jobs:
       - name: Check formatting (Spotless)
         run: ./gradlew spotlessCheck
 
+      - name: Verify Docker
+        run: docker info
+
       - name: Run Tests
         run: ./gradlew test
+        env:
+          TESTCONTAINERS_LOG_LEVEL: debug
 
       - name: Build
         run: ./gradlew build -x test

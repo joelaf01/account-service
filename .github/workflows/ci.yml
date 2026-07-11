@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-java@v5.5.0
         with:
           java-version: '25'
-          architecture: 'temurin'
+          distribution: 'temurin'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6

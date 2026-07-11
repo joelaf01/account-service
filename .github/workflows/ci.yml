@@ -32,8 +32,6 @@ jobs:
 
       - name: Run Tests
         run: ./gradlew test
-        env:
-          TESTCONTAINERS_LOG_LEVEL: debug
 
       - name: Build
         run: ./gradlew build -x test

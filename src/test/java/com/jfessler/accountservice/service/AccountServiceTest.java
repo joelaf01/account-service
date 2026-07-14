@@ -3,21 +3,23 @@ package com.jfessler.accountservice.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.jfessler.accountservice.circuitbreaker.CircuitBreakerFallbackExecutor;
+import com.jfessler.accountservice.circuitbreaker.ResilientResult;
 import com.jfessler.accountservice.exception.AccountNotFoundException;
-import com.jfessler.accountservice.exception.InvalidAccountIdException;
 import com.jfessler.accountservice.model.Account;
 import com.jfessler.accountservice.model.Status;
 import com.jfessler.accountservice.repository.AccountRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
@@ -31,8 +33,23 @@ class AccountServiceTest {
     @Mock
     private DirtyFlagService dirtyFlagService;
 
-    @InjectMocks
+    @Mock
+    private CircuitBreakerFallbackExecutor<ResilientResult<Optional<Account>>> repositoryCircuitBreakerFallbackExecutor;
+
+    @Mock
+    private CircuitBreakerFallbackExecutor<ResilientResult<Optional<Account>>> cacheCircuitBreakerFallbackExecutor;
+
     private AccountService accountService;
+
+    @BeforeEach
+    void setUp() {
+        accountService = new AccountService(
+                accountRepository,
+                accountCacheService,
+                dirtyFlagService,
+                repositoryCircuitBreakerFallbackExecutor,
+                cacheCircuitBreakerFallbackExecutor);
+    }
 
     @Nested
     class FindAllTests {
@@ -80,12 +97,17 @@ class AccountServiceTest {
                         .status(Status.ACTIVE)
                         .build();
                 doReturn(Optional.of(account)).when(accountRepository).findById(id);
+                doAnswer((Answer<ResilientResult<Optional<Account>>>) invocation ->
+                                ((Supplier<ResilientResult<Optional<Account>>>) invocation.getArgument(0)).get())
+                        .when(repositoryCircuitBreakerFallbackExecutor)
+                        .execute(any(), any());
 
-                Optional<Account> result = accountService.findById(id);
+                Optional<ResilientResult<Account>> result = accountService.findById(id);
 
                 assertNotNull(result);
                 assertTrue(result.isPresent());
-                assertEquals(account, result.get());
+                assertEquals(account, result.get().value());
+                assertFalse(result.get().stale());
                 verify(accountRepository, times(1)).findById(id);
                 verify(accountCacheService, never()).getCachedAccount(any());
                 verify(accountCacheService, times(1)).putCachedAccount(any());
@@ -96,13 +118,62 @@ class AccountServiceTest {
             void emptyOptionalReturnsFromRepository() {
                 UUID id = UUID.randomUUID();
                 doReturn(Optional.empty()).when(accountRepository).findById(id);
+                doAnswer((Answer<ResilientResult<Optional<Account>>>) invocation ->
+                                ((Supplier<ResilientResult<Optional<Account>>>) invocation.getArgument(0)).get())
+                        .when(repositoryCircuitBreakerFallbackExecutor)
+                        .execute(any(), any());
 
-                Optional<Account> result = accountService.findById(id);
+                Optional<ResilientResult<Account>> result = accountService.findById(id);
 
                 assertNotNull(result);
                 assertTrue(result.isEmpty());
                 verify(accountRepository, times(1)).findById(id);
                 verify(accountCacheService, never()).getCachedAccount(any());
+                verify(accountCacheService, never()).putCachedAccount(any());
+                verify(dirtyFlagService, never()).clearDirty(any());
+            }
+
+            @Test
+            void returnsFromCacheAfterFallback() {
+                UUID id = UUID.randomUUID();
+                Account account = Account.builder()
+                        .id(id)
+                        .name("name")
+                        .status(Status.ACTIVE)
+                        .build();
+                doReturn(Optional.of(account)).when(accountCacheService).getCachedAccount(id);
+                doAnswer((Answer<ResilientResult<Optional<Account>>>) invocation ->
+                                ((Supplier<ResilientResult<Optional<Account>>>) invocation.getArgument(1)).get())
+                        .when(repositoryCircuitBreakerFallbackExecutor)
+                        .execute(any(), any());
+
+                Optional<ResilientResult<Account>> result = accountService.findById(id);
+
+                assertNotNull(result);
+                assertTrue(result.isPresent());
+                assertEquals(account, result.get().value());
+                assertTrue(result.get().stale());
+                verify(accountRepository, never()).findById(id);
+                verify(accountCacheService, times(1)).getCachedAccount(any());
+                verify(accountCacheService, never()).putCachedAccount(any());
+                verify(dirtyFlagService, never()).clearDirty(id);
+            }
+
+            @Test
+            void emptyOptionalReturnsAfterFallback() {
+                UUID id = UUID.randomUUID();
+                doReturn(Optional.empty()).when(accountCacheService).getCachedAccount(id);
+                doAnswer((Answer<ResilientResult<Optional<Account>>>) invocation ->
+                                ((Supplier<ResilientResult<Optional<Account>>>) invocation.getArgument(1)).get())
+                        .when(repositoryCircuitBreakerFallbackExecutor)
+                        .execute(any(), any());
+
+                Optional<ResilientResult<Account>> result = accountService.findById(id);
+
+                assertNotNull(result);
+                assertTrue(result.isEmpty());
+                verify(accountRepository, never()).findById(id);
+                verify(accountCacheService, times(1)).getCachedAccount(any());
                 verify(accountCacheService, never()).putCachedAccount(any());
                 verify(dirtyFlagService, never()).clearDirty(any());
             }
@@ -124,11 +195,16 @@ class AccountServiceTest {
                         .status(Status.ACTIVE)
                         .build();
                 doReturn(Optional.of(account)).when(accountCacheService).getCachedAccount(id);
+                doAnswer((Answer<ResilientResult<Optional<Account>>>) invocation ->
+                                ((Supplier<ResilientResult<Optional<Account>>>) invocation.getArgument(0)).get())
+                        .when(cacheCircuitBreakerFallbackExecutor)
+                        .execute(any(), any());
 
-                Optional<Account> result = accountService.findById(id);
+                Optional<ResilientResult<Account>> result = accountService.findById(id);
                 assertNotNull(result);
                 assertTrue(result.isPresent());
-                assertEquals(account, result.get());
+                assertEquals(account, result.get().value());
+                assertFalse(result.get().stale());
                 verify(accountRepository, never()).findById(id);
                 verify(accountCacheService, times(1)).getCachedAccount(any());
                 verify(accountCacheService, never()).putCachedAccount(any());
@@ -144,15 +220,19 @@ class AccountServiceTest {
                         .status(Status.ACTIVE)
                         .build();
                 doReturn(Optional.of(account)).when(accountRepository).findById(id);
-                doReturn(Optional.empty()).when(accountCacheService).getCachedAccount(any());
+                doAnswer((Answer<ResilientResult<Optional<Account>>>) invocation ->
+                                ((Supplier<ResilientResult<Optional<Account>>>) invocation.getArgument(1)).get())
+                        .when(cacheCircuitBreakerFallbackExecutor)
+                        .execute(any(), any());
 
-                Optional<Account> result = accountService.findById(id);
+                Optional<ResilientResult<Account>> result = accountService.findById(id);
 
                 assertNotNull(result);
                 assertTrue(result.isPresent());
-                assertEquals(account, result.get());
+                assertEquals(account, result.get().value());
+                assertFalse(result.get().stale());
                 verify(accountRepository, times(1)).findById(id);
-                verify(accountCacheService, times(1)).getCachedAccount(any());
+                verify(accountCacheService, never()).getCachedAccount(any());
                 verify(accountCacheService, times(1)).putCachedAccount(any());
                 verify(dirtyFlagService, times(1)).clearDirty(id);
             }
@@ -161,14 +241,17 @@ class AccountServiceTest {
             void notIdCacheNotInRepository() {
                 UUID id = UUID.randomUUID();
                 doReturn(Optional.empty()).when(accountRepository).findById(id);
-                doReturn(Optional.empty()).when(accountCacheService).getCachedAccount(any());
+                doAnswer((Answer<ResilientResult<Optional<Account>>>) invocation ->
+                                ((Supplier<ResilientResult<Optional<Account>>>) invocation.getArgument(1)).get())
+                        .when(cacheCircuitBreakerFallbackExecutor)
+                        .execute(any(), any());
 
-                Optional<Account> result = accountService.findById(id);
+                Optional<ResilientResult<Account>> result = accountService.findById(id);
 
                 assertNotNull(result);
                 assertTrue(result.isEmpty());
                 verify(accountRepository, times(1)).findById(id);
-                verify(accountCacheService, times(1)).getCachedAccount(any());
+                verify(accountCacheService, never()).getCachedAccount(any());
                 verify(accountCacheService, never()).putCachedAccount(any());
                 verify(dirtyFlagService, never()).clearDirty(any());
             }
@@ -180,31 +263,19 @@ class AccountServiceTest {
 
         @Test
         void createAccountShouldReturnCreatedAccount() {
+            UUID id = UUID.randomUUID();
             Account account =
-                    Account.builder().name("name").status(Status.ACTIVE).build();
+                    Account.builder().id(id).name("name").status(Status.ACTIVE).build();
             doReturn(account).when(accountRepository).save(any());
 
             Account result = accountService.create(account);
             assertNotNull(result);
-            assertNotNull(result.getId());
+            assertEquals(id, result.getId());
             assertEquals(account.getName(), result.getName());
             assertEquals(account.getStatus(), result.getStatus());
 
             verify(accountRepository, times(1)).save(any());
             verify(dirtyFlagService, times(1)).markDirty(result.getId());
-        }
-
-        @Test
-        void exceptionWhenIdIsPopulated() {
-            Account account = Account.builder()
-                    .id(UUID.randomUUID())
-                    .name("name")
-                    .status(Status.ACTIVE)
-                    .build();
-
-            assertThrows(InvalidAccountIdException.class, () -> accountService.create(account));
-            verify(accountRepository, never()).save(any());
-            verify(dirtyFlagService, never()).markDirty(any());
         }
     }
 
@@ -220,7 +291,7 @@ class AccountServiceTest {
             doReturn(true).when(accountRepository).existsById(id);
             doReturn(account).when(accountRepository).save(any());
 
-            Account result = accountService.update(id, account);
+            Account result = accountService.update(account);
             assertNotNull(result);
             assertEquals(id, result.getId());
             assertEquals(account.getName(), result.getName());
@@ -228,51 +299,17 @@ class AccountServiceTest {
             verify(accountRepository, times(1)).existsById(id);
             verify(accountRepository, times(1)).save(any());
             verify(dirtyFlagService, times(1)).markDirty(id);
-        }
-
-        @Test
-        void updateAccountWithoutIdShouldReturnUpdatedAccount() {
-            UUID id = UUID.randomUUID();
-            Account account =
-                    Account.builder().name("name").status(Status.ACTIVE).build();
-
-            doReturn(true).when(accountRepository).existsById(id);
-            doReturn(account).when(accountRepository).save(any());
-
-            Account result = accountService.update(id, account);
-            assertNotNull(result);
-            assertEquals(id, result.getId());
-            assertEquals(account.getName(), result.getName());
-            assertEquals(account.getStatus(), result.getStatus());
-            verify(accountRepository, times(1)).existsById(id);
-            verify(accountRepository, times(1)).save(any());
-            verify(dirtyFlagService, times(1)).markDirty(id);
-        }
-
-        @Test
-        void exceptionWhenIdsDoNotMatch() {
-            UUID id = UUID.randomUUID();
-            Account account = Account.builder()
-                    .id(UUID.randomUUID())
-                    .name("name")
-                    .status(Status.ACTIVE)
-                    .build();
-
-            assertThrows(InvalidAccountIdException.class, () -> accountService.update(id, account));
-            verify(accountRepository, never()).existsById(id);
-            verify(accountRepository, never()).save(any());
-            verify(dirtyFlagService, never()).markDirty(id);
         }
 
         @Test
         void exceptionWhenAccountIsNotFound() {
             UUID id = UUID.randomUUID();
             Account account =
-                    Account.builder().name("name").status(Status.ACTIVE).build();
+                    Account.builder().id(id).name("name").status(Status.ACTIVE).build();
 
             doReturn(false).when(accountRepository).existsById(id);
 
-            assertThrows(AccountNotFoundException.class, () -> accountService.update(id, account));
+            assertThrows(AccountNotFoundException.class, () -> accountService.update(account));
             verify(accountRepository, times(1)).existsById(id);
             verify(accountRepository, never()).save(any());
             verify(dirtyFlagService, never()).markDirty(id);

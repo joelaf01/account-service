@@ -1,13 +1,15 @@
 package com.jfessler.accountservice.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.jfessler.accountservice.circuitbreaker.ResilientResult;
 import com.jfessler.accountservice.exception.AccountNotFoundException;
-import com.jfessler.accountservice.exception.InvalidAccountIdException;
+import com.jfessler.accountservice.mapper.AccountMapper;
 import com.jfessler.accountservice.model.Account;
+import com.jfessler.accountservice.model.Status;
+import com.jfessler.accountservice.representation.AccountRequest;
 import com.jfessler.accountservice.service.AccountService;
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,6 +27,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import tools.jackson.databind.ObjectMapper;
 
 @WebMvcTest(AccountController.class)
+@Import(AccountMapper.class)
 class AccountControllerTest {
 
     @Autowired
@@ -31,6 +35,9 @@ class AccountControllerTest {
 
     @MockitoBean
     private AccountService accountService;
+
+    @Autowired
+    private AccountMapper accountMapper;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -75,7 +82,7 @@ class AccountControllerTest {
         @Test
         void returnsSuccessfully() throws Exception {
             UUID id = UUID.randomUUID();
-            doReturn(Optional.of(Account.builder().id(id).build()))
+            doReturn(Optional.of(new ResilientResult<>(Account.builder().id(id).build(), false)))
                     .when(accountService)
                     .findById(id);
 
@@ -103,6 +110,21 @@ class AccountControllerTest {
 
             verify(accountService, times(1)).findById(id);
         }
+
+        @Test
+        void returnsStaleIndicatorWhenResultIsStale() throws Exception {
+            UUID id = UUID.randomUUID();
+            doReturn(Optional.of(new ResilientResult<>(Account.builder().id(id).build(), true)))
+                    .when(accountService)
+                    .findById(id);
+
+            assertThat(mockMvc.get().uri("/account/" + id))
+                    .hasStatusOk()
+                    .hasContentType("application/json")
+                    .bodyJson()
+                    .extractingPath("$.stale")
+                    .isEqualTo(true);
+        }
     }
 
     @Nested
@@ -110,21 +132,16 @@ class AccountControllerTest {
 
         @Test
         void returnsSuccessfully() throws Exception {
-            Account account = Account.builder().name("name").build();
+            AccountRequest accountRequest = new AccountRequest("name", Status.ACTIVE);
 
-            doAnswer((Answer<Account>) invocation -> {
-                        Account account1 = (Account) invocation.getArguments()[0];
-                        account1.setId(UUID.randomUUID());
-
-                        return account1;
-                    })
+            doAnswer((Answer<Account>) invocation -> (Account) invocation.getArguments()[0])
                     .when(accountService)
                     .create(any());
 
             assertThat(mockMvc.post()
                             .uri("/account")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(account)))
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatusOk()
                     .hasContentType("application/json")
                     .bodyJson()
@@ -133,117 +150,50 @@ class AccountControllerTest {
 
             verify(accountService, times(1)).create(any());
         }
-
-        @Test
-        void withIdThrowsException() throws Exception {
-            UUID id = UUID.randomUUID();
-            Account account = Account.builder().id(id).build();
-
-            InvalidAccountIdException invalidAccountIdException = new InvalidAccountIdException(id);
-            doThrow(invalidAccountIdException).when(accountService).create(any());
-
-            assertThat(mockMvc.post()
-                            .uri("/account")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(account)))
-                    .hasStatus(HttpStatus.BAD_REQUEST)
-                    .hasContentType("application/problem+json")
-                    .bodyJson()
-                    .extractingPath("detail")
-                    .isEqualTo(invalidAccountIdException.getMessage());
-
-            verify(accountService, times(1)).create(any());
-        }
     }
 
     @Nested
     class UpdateTests {
         @Test
-        void idInBodyReturnsSuccessfully() throws Exception {
+        void returnsSuccessfully() throws Exception {
             UUID id = UUID.randomUUID();
-            Account account = Account.builder().id(id).name("name").build();
-            doReturn(account).when(accountService).update(any(), any());
-
-            assertThat(mockMvc.put()
-                            .uri("/account/" + id)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(account)))
-                    .hasStatusOk()
-                    .hasContentType("application/json")
-                    .bodyJson()
-                    .extractingPath("$.id")
-                    .isEqualTo(id.toString());
-
-            verify(accountService, times(1)).update(any(), any());
-        }
-
-        @Test
-        void noIdInBodyReturnsSuccessfully() throws Exception {
-            UUID id = UUID.randomUUID();
-            Account account = Account.builder().name("name").build();
-            doAnswer((Answer<Account>) invocation -> {
-                        Account account1 = (Account) invocation.getArguments()[1];
-                        account1.setId(id);
-
-                        return account1;
-                    })
+            AccountRequest accountRequest = new AccountRequest("name", Status.ACTIVE);
+            doReturn(Account.builder().id(id).name("name").status(Status.ACTIVE).build())
                     .when(accountService)
-                    .update(any(), any());
+                    .update(any());
 
             assertThat(mockMvc.put()
                             .uri("/account/" + id)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(account)))
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatusOk()
                     .hasContentType("application/json")
                     .bodyJson()
                     .extractingPath("$.id")
                     .isEqualTo(id.toString());
 
-            verify(accountService, times(1)).update(any(), any());
-        }
-
-        @Test
-        void withNonMatchingIdThrowsException() throws Exception {
-            UUID id = UUID.randomUUID();
-            UUID otherId = UUID.randomUUID();
-            Account account = Account.builder().id(otherId).build();
-
-            InvalidAccountIdException invalidAccountIdException = new InvalidAccountIdException(otherId);
-            doThrow(invalidAccountIdException).when(accountService).update(any(), any());
-
-            assertThat(mockMvc.put()
-                            .uri("/account/" + id)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(account)))
-                    .hasStatus(HttpStatus.BAD_REQUEST)
-                    .hasContentType("application/problem+json")
-                    .bodyJson()
-                    .extractingPath("detail")
-                    .isEqualTo(invalidAccountIdException.getMessage());
-
-            verify(accountService, times(1)).update(any(), any());
+            verify(accountService, times(1)).update(any());
         }
 
         @Test
         void accountNotFoundThrowsException() throws Exception {
             UUID id = UUID.randomUUID();
-            Account account = Account.builder().id(id).build();
+            AccountRequest accountRequest = new AccountRequest("name", Status.ACTIVE);
 
             AccountNotFoundException accountNotFoundException = new AccountNotFoundException(id);
-            doThrow(accountNotFoundException).when(accountService).update(any(), any());
+            doThrow(accountNotFoundException).when(accountService).update(any());
 
             assertThat(mockMvc.put()
                             .uri("/account/" + id)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(account)))
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatus(HttpStatus.NOT_FOUND)
                     .hasContentType("application/problem+json")
                     .bodyJson()
                     .extractingPath("detail")
                     .isEqualTo(accountNotFoundException.getMessage());
 
-            verify(accountService, times(1)).update(any(), any());
+            verify(accountService, times(1)).update(any());
         }
     }
 

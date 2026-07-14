@@ -3,12 +3,13 @@ package com.jfessler.accountservice.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -25,8 +26,19 @@ class DirtyFlagServiceTest {
     @Mock
     private ValueOperations<String, String> valueOperations;
 
-    @InjectMocks
+    private CircuitBreaker circuitBreaker;
     private DirtyFlagService dirtyFlagService;
+
+    @BeforeEach
+    void setUp() {
+        circuitBreaker = CircuitBreaker.ofDefaults("test");
+        dirtyFlagService = new DirtyFlagService(stringRedisTemplate, circuitBreaker);
+    }
+
+    @AfterEach
+    void tearDown() {
+        circuitBreaker.transitionToClosedState();
+    }
 
     @Nested
     class IsDirtyTests {
@@ -47,6 +59,26 @@ class DirtyFlagServiceTest {
 
             boolean result = dirtyFlagService.isDirty(id);
             assertFalse(result);
+        }
+
+        @Test
+        void whenRedisThrowsExceptionAssumeDirty() {
+            UUID id = UUID.randomUUID();
+            doThrow(new RuntimeException("redis unavailable"))
+                    .when(stringRedisTemplate)
+                    .hasKey(DIRTY_FLAG + id);
+
+            assertTrue(dirtyFlagService.isDirty(id));
+        }
+
+        @Test
+        void whenCircuitBreakerIsOpenAssumeDirty() {
+            circuitBreaker.transitionToForcedOpenState();
+            UUID id = UUID.randomUUID();
+
+            assertTrue(dirtyFlagService.isDirty(id));
+
+            verify(stringRedisTemplate, never()).hasKey(id.toString());
         }
     }
 

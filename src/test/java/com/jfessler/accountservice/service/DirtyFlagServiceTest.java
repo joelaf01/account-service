@@ -3,6 +3,7 @@ package com.jfessler.accountservice.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.jfessler.accountservice.model.DirtyFlag;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -12,8 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
 
 @ExtendWith(MockitoExtension.class)
 class DirtyFlagServiceTest {
@@ -21,18 +23,19 @@ class DirtyFlagServiceTest {
     private static final String DIRTY_FLAG = "dirtyFlag:";
 
     @Mock
-    private StringRedisTemplate stringRedisTemplate;
+    private DynamoDbEnhancedClient enhancedClient;
 
     @Mock
-    private ValueOperations<String, String> valueOperations;
+    private DynamoDbTable<DirtyFlag> dirtyFlagTable;
 
     private CircuitBreaker circuitBreaker;
     private DirtyFlagService dirtyFlagService;
 
     @BeforeEach
     void setUp() {
+        doReturn(dirtyFlagTable).when(enhancedClient).table(any(), any());
         circuitBreaker = CircuitBreaker.ofDefaults("test");
-        dirtyFlagService = new DirtyFlagService(stringRedisTemplate, circuitBreaker);
+        dirtyFlagService = new DirtyFlagService(enhancedClient, "tableName", circuitBreaker);
     }
 
     @AfterEach
@@ -44,29 +47,29 @@ class DirtyFlagServiceTest {
     class IsDirtyTests {
 
         @Test
-        public void whenFoundReturnsTrue() {
+        public void whenGetItemReturnsAnItem() {
             UUID id = UUID.randomUUID();
-            doReturn(true).when(stringRedisTemplate).hasKey(DIRTY_FLAG + id);
+            doReturn(new DirtyFlag()).when(dirtyFlagTable).getItem(any(Key.class));
 
             boolean result = dirtyFlagService.isDirty(id);
             assertTrue(result);
         }
 
         @Test
-        public void whenNotFoundReturnsFalse() {
+        public void whenGetItemReturnsNull() {
             UUID id = UUID.randomUUID();
-            doReturn(false).when(stringRedisTemplate).hasKey(DIRTY_FLAG + id);
+            doReturn(null).when(dirtyFlagTable).getItem(any(Key.class));
 
             boolean result = dirtyFlagService.isDirty(id);
             assertFalse(result);
         }
 
         @Test
-        void whenRedisThrowsExceptionAssumeDirty() {
+        void whenDynamoThrowsExceptionAssumeDirty() {
             UUID id = UUID.randomUUID();
-            doThrow(new RuntimeException("redis unavailable"))
-                    .when(stringRedisTemplate)
-                    .hasKey(DIRTY_FLAG + id);
+            doThrow(new RuntimeException("dynamoDb unavailable"))
+                    .when(dirtyFlagTable)
+                    .getItem(any(Key.class));
 
             assertTrue(dirtyFlagService.isDirty(id));
         }
@@ -78,27 +81,21 @@ class DirtyFlagServiceTest {
 
             assertTrue(dirtyFlagService.isDirty(id));
 
-            verify(stringRedisTemplate, never()).hasKey(id.toString());
+            verify(dirtyFlagTable, never()).getItem(any(Key.class));
         }
     }
 
     @Nested
     class MarkDirtyTests {
 
-        @BeforeEach
-        void setUp() {
-            doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
-        }
-
         @Test
         void markDirtySavesDirtyFlag() {
             UUID id = UUID.randomUUID();
-            doNothing().when(valueOperations).set(DIRTY_FLAG + id, String.valueOf(true));
+            doNothing().when(dirtyFlagTable).putItem(any(DirtyFlag.class));
 
             dirtyFlagService.markDirty(id);
 
-            verify(stringRedisTemplate, times(1)).opsForValue();
-            verify(valueOperations, times(1)).set(DIRTY_FLAG + id, String.valueOf(true));
+            verify(dirtyFlagTable, times(1)).putItem(any(DirtyFlag.class));
         }
     }
 
@@ -111,7 +108,7 @@ class DirtyFlagServiceTest {
 
             dirtyFlagService.clearDirty(id);
 
-            verify(stringRedisTemplate, times(1)).delete(DIRTY_FLAG + id);
+            verify(dirtyFlagTable, times(1)).deleteItem(any(Key.class));
         }
     }
 }

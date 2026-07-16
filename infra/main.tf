@@ -41,6 +41,12 @@ module "database" {
   database_name              = var.database_name
 }
 
+module "dirty_flag" {
+  source       = "./modules/dirty-flag"
+
+  project_name = var.project_name
+}
+
 module "ecs" {
   source = "./modules/ecs"
 
@@ -55,6 +61,9 @@ module "ecs" {
 
   cache_endpoint = module.cache.endpoint
   cache_port     = module.cache.port
+
+  dirty_flag_table_arn = module.dirty_flag.table_arn
+  dirty_flag_table_name = module.dirty_flag.table_name
 }
 
 module "vpc" {

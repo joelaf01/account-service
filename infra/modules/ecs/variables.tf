@@ -1,5 +1,5 @@
 variable "project_name" {
-  description = "Name prefix used for tagging and naming VPC resources"
+  description = "Name prefix used for tagging and naming ECS resources"
   type        = string
 }
 
@@ -47,4 +47,14 @@ variable "cache_endpoint" {
 variable "cache_port" {
   description = "ElastiCache Serverless endpoint port"
   type        = number
+}
+
+variable "dirty_flag_table_arn" {
+  description = "ARN of the dirty flag DynamoDb table"
+  type = string
+}
+
+variable "dirty_flag_table_name" {
+  description = "Name of the dirty flag DynamoDB table"
+  type        = string
 }

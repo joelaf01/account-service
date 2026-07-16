@@ -45,3 +45,11 @@ output "ecs_service_name" {
 output "alb_dns_name" {
   value = module.ecs.alb_dns_name
 }
+
+output "dirty_flag_table_name" {
+  value = module.dirty_flag.table_name
+}
+
+output "dirty_flag_table_arn" {
+  value = module.dirty_flag.table_arn
+}

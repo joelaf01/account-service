@@ -71,6 +71,22 @@ resource "aws_iam_role_policy" "secrets_access" {
   })
 }
 
+resource "aws_iam_role_policy" "dynamodb_access" {
+  name = "${var.project_name}-dynamodb-access"
+  role = aws_iam_role.execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"]
+        Resource = [var.dirty_flag_table_arn]
+      }
+    ]
+  })
+}
+
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-cluster"
 }
@@ -97,7 +113,8 @@ resource "aws_ecs_task_definition" "app" {
         { name = "SPRING_DATASOURCE_URL", value = "jdbc:postgresql://${var.db_endpoint}:5432/${var.db_name}" },
         { name = "SPRING_DATA_REDIS_HOST", value = var.cache_endpoint },
         { name = "SPRING_DATA_REDIS_PORT", value = tostring(var.cache_port) },
-        { name = "SPRING_DATA_REDIS_SSL_ENABLED", value = "true" }
+        { name = "SPRING_DATA_REDIS_SSL_ENABLED", value = "true" },
+        { name = "AWS_DYNAMODB_DIRTY_FLAG_TABLE", value = var.dirty_flag_table_name }
       ]
       secrets = [
         { name = "SPRING_DATASOURCE_USERNAME", valueFrom = "${var.db_secret_arn}:username::" },

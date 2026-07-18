@@ -25,8 +25,21 @@ jobs:
           state-bucket: ${{ secrets.TF_STATE_BUCKET }}
           project-name: ${{ vars.PROJECT_NAME }}
 
-      - name: Terraform Apply (EKS cluster first)
-        run: terraform apply -auto-approve -target=module.eks.aws_eks_cluster.main
+      - name: Terraform Apply (EKS cluster and Fargate profiles first)
+        run: |
+          terraform apply -auto-approve \
+            -target=module.eks.aws_eks_cluster.main \
+            -target=module.eks.aws_eks_fargate_profile.app \
+            -target=module.eks.aws_eks_fargate_profile.kube_system
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
+
+      - name: Patch CoreDNS for Fargate
+        run: |
+          kubectl patch deployment coredns -n kube-system --type json \
+            -p='[{"op": "replace", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type", "value": "fargate"}]' || true
+          kubectl rollout restart -n kube-system deployment coredns
 
       - name: Terraform Apply (everything else)
         run: terraform apply -auto-approve
@@ -44,9 +57,6 @@ jobs:
         run: |
           docker build -t ${{ steps.ecr.outputs.url }}:${{ github.sha }} .
           docker push ${{ steps.ecr.outputs.url }}:${{ github.sha }}
-
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
 
       - name: Deploy application chart
         working-directory: .

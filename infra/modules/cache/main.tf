@@ -3,13 +3,6 @@ resource "aws_security_group" "cache" {
   description = "Allow Redis access from application tier"
   vpc_id      = var.vpc_id
 
-  ingress {
-    from_port       = 6379
-    to_port         = 6379
-    protocol        = "tcp"
-    security_groups = var.allowed_security_group_ids
-  }
-
   tags = {
     Name = "${var.project_name}-cache-sg"
   }

@@ -35,5 +35,14 @@ jobs:
           state-bucket: ${{ secrets.TF_STATE_BUCKET }}
           project-name: ${{ vars.PROJECT_NAME }}
 
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
+
+      - name: Uninstall application chart
+        working-directory: .
+        run: |
+          helm uninstall account-service --namespace default --ignore-not-found
+          sleep 30
+
       - name: Terraform Destroy
         run: terraform destroy -auto-approve

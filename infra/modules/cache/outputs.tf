@@ -5,3 +5,7 @@ output "endpoint" {
 output "port" {
   value = aws_elasticache_serverless_cache.main.endpoint[0].port
 }
+
+output "security_group_id" {
+  value = aws_security_group.cache.id
+}

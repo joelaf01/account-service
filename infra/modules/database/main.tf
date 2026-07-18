@@ -21,13 +21,6 @@ resource "aws_security_group" "db" {
   description = "Allow Postgres access from application tier"
   vpc_id      = var.vpc_id
 
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = var.allowed_security_group_ids
-  }
-
   tags = {
     Name = "${var.project_name}-db-sg"
   }

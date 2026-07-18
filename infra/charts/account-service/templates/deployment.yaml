@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name}}
+    spec:
+      serviceAccountName: {{ .Chart.Name }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository  }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ .Values.env.dbEndpoint }}:5432/{{ .Values.env.dbName }}"
+            - name: AWS_DB_SECRET_ARN
+              value: "{{ .Values.env.dbSecretArn }}"
+            - name: SPRING_DATA_REDIS_HOST
+              value: "{{ .Values.env.cacheEndpoint }}"
+            - name: SPRING_DATA_REDIS_PORT
+              value: "{{ .Values.env.cachePort }}"
+            - name: SPRING_DATA_REDIS_SSL_ENABLED
+              value: "true"
+            - name: AWS_DYNAMODB_DIRTY_FLAG_TABLE
+              value: "{{ .Values.env.dirtyFlagTable }}"
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}

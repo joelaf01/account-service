@@ -31,19 +31,15 @@ output "port" {
 }
 
 output "ecr_repository_url" {
-  value = module.ecs.ecr_repository_url
+  value = module.eks.ecr_repository_url
 }
 
-output "ecs_cluster_name" {
-  value = module.ecs.cluster_name
+output "eks_cluster_name" {
+  value = module.eks.cluster_name
 }
 
-output "ecs_service_name" {
-  value = module.ecs.service_name
-}
-
-output "alb_dns_name" {
-  value = module.ecs.alb_dns_name
+output "app_pod_role_arn" {
+  value = module.eks.app_pod_role_arn
 }
 
 output "dirty_flag_table_name" {

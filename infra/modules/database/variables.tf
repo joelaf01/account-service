@@ -13,11 +13,6 @@ variable "private_subnet_ids" {
   type        = list(string)
 }
 
-variable "allowed_security_group_ids" {
-  description = "Security group IDs allowed to connect to the database"
-  type        = list(string)
-}
-
 variable "engine_version" {
   description = "Aurora PostgreSql engine version"
   type        = string

@@ -33,24 +33,29 @@ jobs:
         run: |
           echo "url=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
 
-      - name: Get ECS cluster and service names
-        id: ecs
-        run: |
-          echo "cluster=$(terraform output -raw ecs_cluster_name)" >> "$GITHUB_OUTPUT"
-          echo "service=$(terraform output -raw ecs_service_name)" >> "$GITHUB_OUTPUT"
-
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and Push image
         working-directory: .
         run: |
-          docker build -t ${{ steps.ecr.outputs.url }}:latest .
-          docker push ${{ steps.ecr.outputs.url }}:latest
+          docker build -t ${{ steps.ecr.outputs.url }}:${{ github.sha }} .
+          docker push ${{ steps.ecr.outputs.url }}:${{ github.sha }}
 
-      - name: Force new ECS deployment
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
+
+      - name: Deploy application chart
+        working-directory: .
         run: |
-          aws ecs update-service \
-            --cluster ${{ steps.ecs.outputs.cluster }} \
-            --service ${{ steps.ecs.outputs.service }} \
-            --force-new-deployment
+          helm upgrade --install account-service ./infra/charts/account-service \
+            --namespace default \
+            --set image.repository=$(terraform -chdir=infra output -raw ecr_repository_url) \
+            --set image.tag=${{ github.sha }} \
+            --set serviceAccount.roleArn=$(terraform -chdir=infra output -raw app_pod_role_arn) \
+            --set env.dbEndpoint=$(terraform -chdir=infra output -raw cluster_endpoint) \
+            --set env.dbName=mydatabase \
+            --set env.cacheEndpoint=$(terraform -chdir=infra output -raw endpoint) \
+            --set env.cachePort=$(terraform -chdir=infra output -raw port) \
+            --set env.dirtyFlagTable=$(terraform -chdir=infra output -raw dirty_flag_table_name) \
+            --set env.dbSecretArn=$(terraform -chdir=infra output -raw secret_arn)

@@ -51,6 +51,7 @@ dependencies {
     implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.4.0'
     implementation(platform("software.amazon.awssdk:bom:2.48.0"))
     implementation("software.amazon.awssdk:dynamodb-enhanced")
+    implementation("software.amazon.awssdk:secretsmanager")
 }
 
 tasks.named('jar') {

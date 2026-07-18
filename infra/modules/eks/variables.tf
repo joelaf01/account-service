@@ -1,27 +1,11 @@
 variable "project_name" {
-  description = "Name prefix used for tagging and naming ECS resources"
+  description = "Name prefix used for tagging and naming EKS resources"
   type        = string
-}
-
-variable "vpc_id" {
-  description = "VPC ID the ECS security group belongs to"
-  type        = string
-}
-
-variable "public_subnet_ids" {
-  description = "Public subnet IDs the ECS service will run in"
-  type        = list(string)
 }
 
 variable "private_subnet_ids" {
-  description = "Private subnet IDs the ECS service will run in"
+  description = "Private subnet IDs the EKS cluster and Fargate profiles run in"
   type        = list(string)
-}
-
-variable "image_tag" {
-  description = "Tag of the container image to deploy from ECR"
-  type        = string
-  default     = "latest"
 }
 
 variable "db_endpoint" {
@@ -49,12 +33,12 @@ variable "cache_port" {
   type        = number
 }
 
-variable "dirty_flag_table_arn" {
-  description = "ARN of the dirty flag DynamoDb table"
-  type = string
-}
-
 variable "dirty_flag_table_name" {
   description = "Name of the dirty flag DynamoDB table"
+  type        = string
+}
+
+variable "dirty_flag_table_arn" {
+  description = "ARN of the dirty flag DynamoDB table"
   type        = string
 }

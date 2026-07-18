@@ -25,7 +25,10 @@ jobs:
           state-bucket: ${{ secrets.TF_STATE_BUCKET }}
           project-name: ${{ vars.PROJECT_NAME }}
 
-      - name: Terraform Apply
+      - name: Terraform Apply (EKS cluster first)
+        run: terraform apply -auto-approve -target=module.eks.aws_eks_cluster.main
+
+      - name: Terraform Apply (everything else)
         run: terraform apply -auto-approve
 
       - name: Get ECR repository URL

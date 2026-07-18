@@ -37,8 +37,8 @@ jobs:
 
       - name: Patch CoreDNS for Fargate
         run: |
-          kubectl patch deployment coredns -n kube-system --type json \
-            -p='[{"op": "replace", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type", "value": "fargate"}]' || true
+          kubectl patch deployment coredns -n kube-system --type merge \
+            -p '{"spec":{"template":{"metadata":{"annotations":{"eks.amazonaws.com/compute-type":"fargate"}}}}}'
           kubectl rollout restart -n kube-system deployment coredns
 
       - name: Terraform Apply (everything else)

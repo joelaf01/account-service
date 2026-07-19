@@ -40,9 +40,28 @@ jobs:
           kubectl patch deployment coredns -n kube-system --type merge \
             -p '{"spec":{"template":{"metadata":{"annotations":{"eks.amazonaws.com/compute-type":"fargate"}}}}}'
           kubectl rollout restart -n kube-system deployment coredns
+          kubectl rollout status deployment coredns -n kube-system --timeout=180s
 
       - name: Terraform Apply (everything else)
+        id: apply_rest
+        continue-on-error: true
         run: terraform apply -auto-approve
+
+      - name: Debug cluster state on failure
+        if: steps.apply_rest.outcome == 'failure'
+        run: |
+          echo "=== All pods ==="
+          kubectl get pods -A
+          echo "=== CoreDNS pod details ==="
+          kubectl describe pods -n kube-system -l k8s-app=kube-dns
+          echo "=== LB controller pod details (if any) ==="
+          kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+          kubectl describe pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller || true
+          kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --tail=100 || true
+
+      - name: Fail if apply failed
+        if: steps.apply_rest.outcome == 'failure'
+        run: exit 1
 
       - name: Get ECR repository URL
         id: ecr

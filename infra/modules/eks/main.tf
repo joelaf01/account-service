@@ -58,6 +58,10 @@ resource "aws_eks_cluster" "main" {
     endpoint_public_access  = true
   }
 
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
+
   depends_on = [aws_iam_role_policy_attachment.cluster_policy]
 }
 
@@ -141,12 +145,12 @@ resource "kubernetes_service_account_v1" "load_balancer_controller" {
 }
 
 resource "helm_release" "aws_load_balancer_controller" {
-  name       = "aws-load-balancer-controller"
-  repository = "https://aws.github.io/eks-charts"
-  chart      = "aws-load-balancer-controller"
-  namespace  = "kube-system"
-  version    = "3.4.2"
-  atomic = true
+  name            = "aws-load-balancer-controller"
+  repository      = "https://aws.github.io/eks-charts"
+  chart           = "aws-load-balancer-controller"
+  namespace       = "kube-system"
+  version         = "3.4.2"
+  atomic          = true
   cleanup_on_fail = true
 
   set = [
@@ -216,4 +220,19 @@ resource "aws_iam_role_policy" "app_pod_dynamodb_access" {
       Resource = [var.dirty_flag_table_arn]
     }]
   })
+}
+
+resource "aws_eks_access_entry" "console_admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = "arn:aws:iam::003452293983:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_ca98fe56c6d4a0e4"
+}
+
+resource "aws_eks_access_policy_association" "console_admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_eks_access_entry.console_admin.principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
 }

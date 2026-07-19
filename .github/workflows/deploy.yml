@@ -28,6 +28,7 @@ jobs:
       - name: Terraform Apply (EKS cluster and Fargate profiles first)
         run: |
           terraform apply -auto-approve \
+            -target=module.vpc \
             -target=module.eks.aws_eks_cluster.main \
             -target=module.eks.aws_eks_fargate_profile.app \
             -target=module.eks.aws_eks_fargate_profile.kube_system

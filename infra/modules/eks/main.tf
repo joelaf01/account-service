@@ -146,6 +146,8 @@ resource "helm_release" "aws_load_balancer_controller" {
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
   version    = "3.4.2"
+  atomic = true
+  cleanup_on_fail = true
 
   set = [
     { name = "clusterName", value = aws_eks_cluster.main.name },

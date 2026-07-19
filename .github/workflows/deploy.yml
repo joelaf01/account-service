@@ -36,11 +36,25 @@ jobs:
         run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
 
       - name: Patch CoreDNS for Fargate
+        id: patch_coredns
+        continue-on-error: true
         run: |
           kubectl patch deployment coredns -n kube-system --type merge \
             -p '{"spec":{"template":{"metadata":{"annotations":{"eks.amazonaws.com/compute-type":"fargate"}}}}}'
           kubectl rollout restart -n kube-system deployment coredns
           kubectl rollout status deployment coredns -n kube-system --timeout=180s
+
+      - name: Debug CoreDNS pod events
+        if: steps.patch_coredns.outcome == 'failure'
+        run: |
+          echo "=== CoreDNS pods ==="
+          kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide
+          echo "=== CoreDNS pod events ==="
+          kubectl describe pods -n kube-system -l k8s-app=kube-dns
+
+      - name: Fail if CoreDNS patch failed
+        if: steps.patch_coredns.outcome == 'failure'
+        run: exit 1
 
       - name: Terraform Apply (everything else)
         id: apply_rest

@@ -43,19 +43,19 @@ resource "aws_iam_role" "cluster" {
 }
 
 resource "aws_iam_role_policy_attachment" "cluster_policy" {
-  role = aws_iam_role.cluster.name
+  role       = aws_iam_role.cluster.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
 resource "aws_eks_cluster" "main" {
   name     = "${var.project_name}-cluster"
   role_arn = aws_iam_role.cluster.arn
-  version = "1.36"
+  version  = "1.36"
 
   vpc_config {
-    subnet_ids = var.private_subnet_ids
+    subnet_ids              = var.private_subnet_ids
     endpoint_private_access = true
-    endpoint_public_access = true
+    endpoint_public_access  = true
   }
 
   depends_on = [aws_iam_role_policy_attachment.cluster_policy]
@@ -83,7 +83,7 @@ resource "aws_eks_fargate_profile" "app" {
   cluster_name           = aws_eks_cluster.main.name
   fargate_profile_name   = "${var.project_name}-app"
   pod_execution_role_arn = aws_iam_role.fargate_pod_execution.arn
-  subnet_ids = var.private_subnet_ids
+  subnet_ids             = var.private_subnet_ids
 
   selector {
     namespace = "default"
@@ -94,7 +94,7 @@ resource "aws_eks_fargate_profile" "kube_system" {
   cluster_name           = aws_eks_cluster.main.name
   fargate_profile_name   = "${var.project_name}-kube-system"
   pod_execution_role_arn = aws_iam_role.fargate_pod_execution.arn
-  subnet_ids = var.private_subnet_ids
+  subnet_ids             = var.private_subnet_ids
 
   selector {
     namespace = "kube-system"
@@ -106,8 +106,8 @@ data "tls_certificate" "eks" {
 }
 
 resource "aws_iam_openid_connect_provider" "eks" {
-  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
-  client_id_list = ["sts.amazonaws.com"]
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+  client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
 }
 
@@ -132,7 +132,7 @@ resource "aws_iam_role" "load_balancer_controller" {
 
 resource "kubernetes_service_account_v1" "load_balancer_controller" {
   metadata {
-    name = "aws-load-balancer-controller"
+    name      = "aws-load-balancer-controller"
     namespace = "kube-system"
     annotations = {
       "eks.amazonaws.com/role-arn" = aws_iam_role.load_balancer_controller.arn
@@ -145,12 +145,12 @@ resource "helm_release" "aws_load_balancer_controller" {
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
   namespace  = "kube-system"
-  version = "3.4.2"
+  version    = "3.4.2"
 
   set = [
-    { name  = "clusterName", value = aws_eks_cluster.main.name },
-    { name  = "serviceAccount.create", value = "false" },
-    { name  = "serviceAccount.name", value = kubernetes_service_account_v1.load_balancer_controller.metadata[0].name }
+    { name = "clusterName", value = aws_eks_cluster.main.name },
+    { name = "serviceAccount.create", value = "false" },
+    { name = "serviceAccount.name", value = kubernetes_service_account_v1.load_balancer_controller.metadata[0].name }
   ]
 
   depends_on = [aws_eks_fargate_profile.kube_system]
@@ -161,7 +161,7 @@ data "http" "lb_controller_iam_policy" {
 }
 
 resource "aws_iam_policy" "load_balancer_controller" {
-  name = "${var.project_name}-eks-lb-controller-policy"
+  name   = "${var.project_name}-eks-lb-controller-policy"
   policy = data.http.lb_controller_iam_policy.response_body
 }
 
@@ -190,7 +190,7 @@ resource "aws_iam_role" "app_pod" {
 
 resource "aws_iam_role_policy" "app_pod_secrets_access" {
   name = "${var.project_name}-app-pod-secrets-access"
-  role   = aws_iam_role.app_pod.id
+  role = aws_iam_role.app_pod.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -204,7 +204,7 @@ resource "aws_iam_role_policy" "app_pod_secrets_access" {
 
 resource "aws_iam_role_policy" "app_pod_dynamodb_access" {
   name = "${var.project_name}-app-pod-dynamodb-access"
-  role   = aws_iam_role.app_pod.id
+  role = aws_iam_role.app_pod.id
 
   policy = jsonencode({
     Version = "2012-10-17"

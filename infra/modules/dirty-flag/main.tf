@@ -1,7 +1,7 @@
 resource "aws_dynamodb_table" "dirty_flag" {
-  name = "${var.project_name}-dirty-flag"
+  name         = "${var.project_name}-dirty-flag"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key = "accountId"
+  hash_key     = "accountId"
 
   attribute {
     name = "accountId"
@@ -10,7 +10,7 @@ resource "aws_dynamodb_table" "dirty_flag" {
 
   ttl {
     attribute_name = "ttl"
-    enabled = true
+    enabled        = true
   }
 
   tags = {

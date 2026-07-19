@@ -27,7 +27,7 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.aws_region
+  region = var.aws_region
 }
 
 data "aws_eks_cluster_auth" "main" {
@@ -51,22 +51,22 @@ provider "helm" {
 module "cache" {
   source = "./modules/cache"
 
-  project_name               = var.project_name
-  vpc_id                     = module.vpc.vpc_id
-  private_subnet_ids         = module.vpc.private_subnet_ids
+  project_name       = var.project_name
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
 }
 
 module "database" {
   source = "./modules/database"
 
-  project_name               = var.project_name
-  vpc_id                     = module.vpc.vpc_id
-  private_subnet_ids         = module.vpc.private_subnet_ids
-  database_name              = var.database_name
+  project_name       = var.project_name
+  vpc_id             = module.vpc.vpc_id
+  private_subnet_ids = module.vpc.private_subnet_ids
+  database_name      = var.database_name
 }
 
 module "dirty_flag" {
-  source       = "./modules/dirty-flag"
+  source = "./modules/dirty-flag"
 
   project_name = var.project_name
 }
@@ -77,14 +77,14 @@ module "eks" {
   project_name       = var.project_name
   private_subnet_ids = module.vpc.private_subnet_ids
 
-  db_endpoint = module.database.cluster_endpoint
-  db_name = var.database_name
+  db_endpoint   = module.database.cluster_endpoint
+  db_name       = var.database_name
   db_secret_arn = module.database.secret_arn
 
   cache_endpoint = module.cache.endpoint
-  cache_port = module.cache.port
+  cache_port     = module.cache.port
 
-  dirty_flag_table_arn = module.dirty_flag.table_arn
+  dirty_flag_table_arn  = module.dirty_flag.table_arn
   dirty_flag_table_name = module.dirty_flag.table_name
 }
 
@@ -99,19 +99,19 @@ module "vpc" {
 }
 
 resource "aws_security_group_rule" "db_from_eks" {
-  type = "ingress"
-  from_port = 5432
-  to_port = 5432
-  protocol = "tcp"
-  security_group_id = module.database.security_group_id
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = module.database.security_group_id
   source_security_group_id = module.eks.cluster_security_group_id
 }
 
 resource "aws_security_group_rule" "cache_from_eks" {
-  type = "ingress"
-  from_port = 6379
-  to_port = 6379
-  protocol = "tcp"
-  security_group_id = module.cache.security_group_id
+  type                     = "ingress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  security_group_id        = module.cache.security_group_id
   source_security_group_id = module.eks.cluster_security_group_id
 }

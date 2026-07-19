@@ -36,13 +36,23 @@ jobs:
           project-name: ${{ vars.PROJECT_NAME }}
 
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
+        run: |
+          CLUSTER_NAME=$(terraform output -raw eks_cluster_name 2>/dev/null || echo "")
+          if [ -n "$CLUSTER_NAME" ]; then
+            aws eks update-kubeconfig --name $CLUSTER_NAME" --region us-east-1
+          else
+            echo "No EKS cluster found in state, skipping kubeconfig setup."
+          fi
 
       - name: Uninstall application chart
         working-directory: .
         run: |
-          helm uninstall account-service --namespace default --ignore-not-found
-          sleep 30
+          if kubectl cluster-info &>/dev/null; then
+            helm uninstall account-service --namespace default --ignore-not-found
+            sleep 30
+          else
+            echo "No reachable cluster, skipping Helm uninstall."
+          fi
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve

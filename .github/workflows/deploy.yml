@@ -51,8 +51,8 @@ jobs:
           kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide
           echo "=== CoreDNS pod details ==="
           kubectl describe pods -n kube-system -l k8s-app=kube-dns
-          echo "=== CoreDNS pod event ==="
-          kubectl describe pods -n kube-system -l k8s-app=kube-dns | grep -A 20 "Events:"
+          echo "=== CoreDNS pod events ==="
+          kubectl get events -n kube-system --sort-by='.lastTimestamp' | tail -30
 
       - name: Fail if CoreDNS patch failed
         if: steps.patch_coredns.outcome == 'failure'

@@ -39,7 +39,7 @@ jobs:
         run: |
           CLUSTER_NAME=$(terraform output -raw eks_cluster_name 2>/dev/null || echo "")
           if [ -n "$CLUSTER_NAME" ]; then
-            aws eks update-kubeconfig --name $CLUSTER_NAME" --region us-east-1
+            aws eks update-kubeconfig --name "$CLUSTER_NAME" --region us-east-1
           else
             echo "No EKS cluster found in state, skipping kubeconfig setup."
           fi

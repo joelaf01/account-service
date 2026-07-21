@@ -36,13 +36,6 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
 
-      - name: Debug node status
-        run: |
-          echo "=== Nodes ==="
-          kubectl get nodes -o wide
-          echo "=== Recent events ==="
-          kubectl get events -A --sort-by='.lastTimestamp' | tail -50
-
       - name: Terraform Apply (everything else)
         id: apply_rest
         continue-on-error: true

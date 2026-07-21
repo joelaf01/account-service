@@ -43,6 +43,8 @@ jobs:
             -- curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://602401143452.dkr.ecr.us-east-1.amazonaws.com/ || echo "connectivity check failed"
           sleep 5
           kubectl describe pod nat-check
+          echo "=== nat check pod events ==="
+          kubectl get events -n nat-check --sort-by='.lastTimestamp' | tail -30
 
       - name: Patch CoreDNS for Fargate
         id: patch_coredns

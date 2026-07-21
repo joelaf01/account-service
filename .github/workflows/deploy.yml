@@ -38,13 +38,13 @@ jobs:
 
       - name: Verify NAT connectivity before CoreDNS patch
         run: |
+          kubectl delete pod nat-check --ignore-not-found
           kubectl run nat-check --image=amazonlinux:2023 --restart=Never \
             --overrides='{"spec":{"nodeSelector":{"eks.amazonaws.com/compute-type":"fargate"}}}' \
             -- curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://602401143452.dkr.ecr.us-east-1.amazonaws.com/ || echo "connectivity check failed"
-          sleep 5
+          sleep 15
           kubectl describe pod nat-check
-          echo "=== nat check pod events ==="
-          kubectl get events -n nat-check --sort-by='.lastTimestamp' | tail -30
+          kubectl logs nat-check
 
       - name: Patch CoreDNS for Fargate
         id: patch_coredns

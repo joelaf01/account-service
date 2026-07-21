@@ -36,6 +36,12 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
 
+      - name: Verify NAT connectivity before CoreDNS patch
+        run: |
+          kubectl run nat-check --image=amazonlinux:2023 --restart=Never --rm -i \
+            --overrides='{"spec":{"nodeSelector":{"eks.amazonaws.com/compute-type":"fargate"}}}' \
+            -- curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://602401143452.dkr.ecr.us-east-1.amazonaws.com/ || echo "connectivity check failed"
+
       - name: Patch CoreDNS for Fargate
         id: patch_coredns
         continue-on-error: true

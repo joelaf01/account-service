@@ -95,6 +95,17 @@ resource "aws_eks_fargate_profile" "app" {
   }
 }
 
+resource "aws_eks_fargate_profile" "kube_system" {
+  cluster_name           = aws_eks_cluster.main.name
+  fargate_profile_name   = "${var.project_name}-kube-system"
+  pod_execution_role_arn = aws_iam_role.fargate_pod_execution.arn
+  subnet_ids             = var.private_subnet_ids
+
+  selector {
+    namespace = "kube-system"
+  }
+}
+
 data "tls_certificate" "eks" {
   url = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
@@ -149,7 +160,7 @@ resource "helm_release" "aws_load_balancer_controller" {
     { name = "serviceAccount.name", value = kubernetes_service_account_v1.load_balancer_controller.metadata[0].name }
   ]
 
-  depends_on = [aws_eks_node_group.system]
+  depends_on = [aws_eks_fargate_profile.kube_system]
 }
 
 data "http" "lb_controller_iam_policy" {
@@ -225,47 +236,4 @@ resource "aws_eks_access_policy_association" "console_admin" {
   access_scope {
     type = "cluster"
   }
-}
-
-resource "aws_iam_role" "node_group" {
-  name = "${var.project_name}-eks-node-group-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "node_group_worker" {
-  role       = aws_iam_role.node_group.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "node_group_cni" {
-  role = aws_iam_role.node_group.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "node_group_ecr" {
-  role       = aws_iam_role.node_group.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_eks_node_group" "system" {
-  cluster_name    = aws_eks_cluster.main.name
-  node_group_name = "${var.project_name}-system"
-  node_role_arn = aws_iam_role.node_group.arn
-  subnet_ids = var.private_subnet_ids
-  instance_types = ["t3.small"]
-
-  scaling_config {
-    desired_size = 1
-    max_size     = 1
-    min_size     = 1
-  }
-
-  depends_on = [aws_iam_role_policy_attachment.node_group_worker]
 }

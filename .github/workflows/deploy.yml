@@ -31,7 +31,8 @@ jobs:
             -target=module.vpc \
             -target=module.eks.aws_eks_cluster.main \
             -target=module.eks.aws_eks_fargate_profile.app \
-            -target=module.eks.aws_eks_fargate_profile.kube_system
+            -target=module.eks.aws_eks_fargate_profile.kube_system\
+            -target=module.eks.aws_iam_role_policy_attachment.fargate_pod_execution_policy
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1

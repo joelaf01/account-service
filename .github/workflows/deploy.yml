@@ -40,7 +40,7 @@ jobs:
         run: |
           kubectl delete pod nat-check --ignore-not-found
           kubectl run nat-check --image=amazonlinux:2023 --restart=Never \
-            --overrides='{"spec":{"nodeSelector":{"eks.amazonaws.com/compute-type":"fargate"}}}' \
+            --overrides='{"spec":{"dnsPolicy":"Default","nodeSelector":{"eks.amazonaws.com/compute-type":"fargate"}}}' \
             -- curl -v "%{http_code}" --max-time 10 https://602401143452.dkr.ecr.us-east-1.amazonaws.com/ || echo "connectivity check failed"
           sleep 90
           kubectl describe pod nat-check

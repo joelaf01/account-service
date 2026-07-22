@@ -52,6 +52,7 @@ dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.48.0"))
     implementation("software.amazon.awssdk:dynamodb-enhanced")
     implementation("software.amazon.awssdk:secretsmanager")
+    implementation("software.amazon.awssdk:sts")
 }
 
 tasks.named('jar') {

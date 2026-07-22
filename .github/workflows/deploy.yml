@@ -31,7 +31,7 @@ jobs:
             -target=module.vpc \
             -target=module.eks.aws_eks_cluster.main \
             -target=module.eks.aws_eks_fargate_profile.app \
-            -target=module.eks.aws_eks_fargate_profile.kube_system\
+            -target=module.eks.aws_eks_fargate_profile.kube_system \
             -target=module.eks.aws_iam_role_policy_attachment.fargate_pod_execution_policy
 
       - name: Update kubeconfig
@@ -45,6 +45,10 @@ jobs:
             -p '{"spec":{"template":{"metadata":{"annotations":{"eks.amazonaws.com/compute-type":"fargate"}}}}}'
           kubectl rollout restart -n kube-system deployment coredns
           kubectl rollout status deployment coredns -n kube-system --timeout=180s
+
+      - name: Fail if CoreDNS patch failed
+        if: steps.patch_coredns.outcome == 'failure'
+        run: exit 1
 
       - name: Terraform Apply (everything else)
         id: apply_rest

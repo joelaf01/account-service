@@ -37,16 +37,6 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region us-east-1
 
-      - name: Verify NAT connectivity before CoreDNS patch
-        run: |
-          kubectl delete pod nat-check --ignore-not-found
-          kubectl run nat-check --image=amazonlinux:2023 --restart=Never \
-            --overrides='{"spec":{"dnsPolicy":"Default","nodeSelector":{"eks.amazonaws.com/compute-type":"fargate"}}}' \
-            -- curl -v "%{http_code}" --max-time 10 https://602401143452.dkr.ecr.us-east-1.amazonaws.com/ || echo "connectivity check failed"
-          sleep 90
-          kubectl describe pod nat-check
-          kubectl logs nat-check
-
       - name: Patch CoreDNS for Fargate
         id: patch_coredns
         continue-on-error: true
@@ -55,20 +45,6 @@ jobs:
             -p '{"spec":{"template":{"metadata":{"annotations":{"eks.amazonaws.com/compute-type":"fargate"}}}}}'
           kubectl rollout restart -n kube-system deployment coredns
           kubectl rollout status deployment coredns -n kube-system --timeout=180s
-
-      - name: Debug CoreDNS pod events
-        if: steps.patch_coredns.outcome == 'failure'
-        run: |
-          echo "=== CoreDNS pods ==="
-          kubectl get pods -n kube-system -l k8s-app=kube-dns -o wide
-          echo "=== CoreDNS pod details ==="
-          kubectl describe pods -n kube-system -l k8s-app=kube-dns
-          echo "=== CoreDNS pod events ==="
-          kubectl get events -n kube-system --sort-by='.lastTimestamp' | tail -30
-
-      - name: Fail if CoreDNS patch failed
-        if: steps.patch_coredns.outcome == 'failure'
-        run: exit 1
 
       - name: Terraform Apply (everything else)
         id: apply_rest

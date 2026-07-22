@@ -74,6 +74,7 @@ module "dirty_flag" {
 module "eks" {
   source = "./modules/eks"
 
+  vpc_id = module.vpc.vpc_id
   project_name       = var.project_name
   private_subnet_ids = module.vpc.private_subnet_ids
 

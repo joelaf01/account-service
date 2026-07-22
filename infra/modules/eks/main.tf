@@ -157,7 +157,7 @@ resource "helm_release" "aws_load_balancer_controller" {
   set = [
     { name = "clusterName", value = aws_eks_cluster.main.name },
     { name = "serviceAccount.create", value = "false" },
-    { name = "serviceAccount.name", value = kubernetes_service_account_v1.load_balancer_controller.metadata[0].name }
+    { name = "serviceAccount.name", value = kubernetes_service_account_v1.load_balancer_controller.metadata[0].name },
     { name = "vpcId", value = var.vpc_id }
   ]
 

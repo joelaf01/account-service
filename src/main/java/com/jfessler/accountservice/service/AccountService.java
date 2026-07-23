@@ -84,6 +84,17 @@ public class AccountService {
         return result.value().map(account -> new ResilientResult<>(account, result.stale()));
     }
 
+    /**
+     * Attempts to retrieve an account from the repository. On successful retrieve the account will be put into cache
+     * and dirty flag cleared.
+     *
+     * NOTE: There is a narrow race condition when another thread could update the account in between the cache put and
+     * dirty flag clear. This could then result a stale value getting returned from cache, with a cleared dirty flag.
+     * This is partially mitigated by the cache TTL and in a real scenario could be mitigated through versioning on
+     * the account.
+     * @param id the account id to look up
+     * @return the account if found, otherwise empty
+     */
     private Optional<Account> retrieveFromRepository(UUID id) {
         Optional<Account> account = accountRepository.findById(id);
         if (account.isPresent()) {

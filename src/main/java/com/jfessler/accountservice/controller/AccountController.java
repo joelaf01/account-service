@@ -10,6 +10,8 @@ import com.jfessler.accountservice.service.AccountService;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -42,12 +44,12 @@ public class AccountController {
     }
 
     @PostMapping
-    public AccountResponse create(@RequestBody AccountRequest request) {
+    public AccountResponse create(@RequestBody @Valid AccountRequest request) {
         return accountMapper.toAccountResponse(accountService.create(accountMapper.toEntity(request)), false);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AccountResponse> update(@PathVariable UUID id, @RequestBody AccountRequest request) {
+    public ResponseEntity<AccountResponse> update(@PathVariable UUID id, @RequestBody @Valid AccountRequest request) {
         return ResponseEntity.ok(
                 accountMapper.toAccountResponse(accountService.update(accountMapper.toEntity(request, id)), false));
     }

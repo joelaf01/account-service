@@ -125,6 +125,19 @@ class AccountControllerTest {
                     .extractingPath("$.stale")
                     .isEqualTo(true);
         }
+
+        @Test
+        void invalidId() throws Exception {
+            String invalidId = "invalidId";
+
+            assertThat(mockMvc.get().uri("/account/" + invalidId))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("Method parameter 'id': Failed to convert value of type 'java.lang.String' " +
+                            "to required type 'java.util.UUID'; Invalid UUID string: invalidId");
+        }
     }
 
     @Nested
@@ -149,6 +162,50 @@ class AccountControllerTest {
                     .isNotEmpty();
 
             verify(accountService, times(1)).create(any());
+        }
+
+        @Test
+        void invalidName() throws Exception {
+            AccountRequest accountRequest = new AccountRequest("name".repeat(100), Status.INACTIVE);
+
+            assertThat(mockMvc.post()
+                    .uri("/account")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(accountRequest)))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("name: size must be between 0 and 255");
+        }
+
+        @Test
+        void blankName() throws Exception {
+            AccountRequest accountRequest = new AccountRequest("", Status.INACTIVE);
+
+            assertThat(mockMvc.post()
+                    .uri("/account")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(accountRequest)))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json").bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("name: must not be blank");
+        }
+
+        @Test
+        void nullStatus() throws Exception {
+            AccountRequest accountRequest = new AccountRequest("name", null);
+
+            assertThat(mockMvc.post()
+                    .uri("/account")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(accountRequest)))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("status: must not be null");
         }
     }
 
@@ -195,6 +252,66 @@ class AccountControllerTest {
 
             verify(accountService, times(1)).update(any());
         }
+
+        @Test
+        void invalidId() throws Exception {
+            String invalidId = "invalidId";
+
+            assertThat(mockMvc.put().uri("/account/" + invalidId))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("Method parameter 'id': Failed to convert value of type 'java.lang.String' " +
+                            "to required type 'java.util.UUID'; Invalid UUID string: invalidId");
+        }
+
+        @Test
+        void invalidName() throws Exception {
+            UUID id = UUID.randomUUID();
+            AccountRequest accountRequest = new AccountRequest("name".repeat(100), Status.INACTIVE);
+
+            assertThat(mockMvc.put()
+                    .uri("/account/" + id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(accountRequest)))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("name: size must be between 0 and 255");
+        }
+
+        @Test
+        void blankName() throws Exception {
+            UUID id = UUID.randomUUID();
+            AccountRequest accountRequest = new AccountRequest("", Status.INACTIVE);
+
+            assertThat(mockMvc.put()
+                    .uri("/account/" + id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(accountRequest)))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json").bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("name: must not be blank");
+        }
+
+        @Test
+        void nullStatus() throws Exception {
+            UUID id = UUID.randomUUID();
+            AccountRequest accountRequest = new AccountRequest("name", null);
+
+            assertThat(mockMvc.put()
+                    .uri("/account/" + id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(accountRequest)))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("status: must not be null");
+        }
     }
 
     @Nested
@@ -206,6 +323,19 @@ class AccountControllerTest {
             assertThat(mockMvc.delete().uri("/account/" + id)).hasStatus(HttpStatus.NO_CONTENT);
 
             verify(accountService, times(1)).deleteById(id);
+        }
+
+        @Test
+        void invalidId() throws Exception {
+            String invalidId = "invalidId";
+
+            assertThat(mockMvc.delete().uri("/account/" + invalidId))
+                    .hasStatus(HttpStatus.BAD_REQUEST)
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
+                    .extractingPath("detail")
+                    .isEqualTo("Method parameter 'id': Failed to convert value of type 'java.lang.String' " +
+                            "to required type 'java.util.UUID'; Invalid UUID string: invalidId");
         }
     }
 }

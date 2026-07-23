@@ -2,20 +2,22 @@ package com.jfessler.accountservice.model;
 
 import jakarta.persistence.*;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+
+import lombok.*;
 
 @Entity
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Builder
 @Table(schema = "accounts")
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class Account {
 
     @Id
+    @EqualsAndHashCode.Include
     private UUID id;
 
     private String name;

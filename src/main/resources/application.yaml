@@ -20,3 +20,9 @@ management:
   endpoint:
     health:
       show-details: never
+
+account-service:
+  cache:
+    ttl-hours: 1
+  dirty-flag:
+    ttl-hours: 24

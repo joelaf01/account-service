@@ -35,7 +35,7 @@ class DirtyFlagServiceTest {
     void setUp() {
         doReturn(dirtyFlagTable).when(enhancedClient).table(any(), any());
         circuitBreaker = CircuitBreaker.ofDefaults("test");
-        dirtyFlagService = new DirtyFlagService(enhancedClient, "tableName", circuitBreaker);
+        dirtyFlagService = new DirtyFlagService(enhancedClient, "tableName", circuitBreaker, 24);
     }
 
     @AfterEach

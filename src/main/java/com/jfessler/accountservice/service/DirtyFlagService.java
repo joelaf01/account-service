@@ -20,11 +20,15 @@ public class DirtyFlagService {
 
     private final DynamoDbTable<DirtyFlag> dirtyFlagTable;
     private final CircuitBreaker dirtyFlagCircuitBreaker;
+    private final int ttlHours;
 
     public DirtyFlagService(
             DynamoDbEnhancedClient enhancedClient,
             @Value("${aws.dynamodb.dirty-flag-table}") String tableName,
-            @Qualifier("dirtyFlagCircuitBreaker") CircuitBreaker dirtyFlagCircuitBreaker) {
+            @Qualifier("dirtyFlagCircuitBreaker") CircuitBreaker dirtyFlagCircuitBreaker,
+            @Value("${account-service.dirty-flag.ttl-hours}") int ttlHours) {
+
+        this.ttlHours = ttlHours;
         this.dirtyFlagTable = enhancedClient.table(tableName, TableSchema.fromBean(DirtyFlag.class));
         this.dirtyFlagCircuitBreaker = dirtyFlagCircuitBreaker;
     }
@@ -52,6 +56,6 @@ public class DirtyFlagService {
     }
 
     private long getTtl() {
-        return Instant.now().plus(1, ChronoUnit.DAYS).getEpochSecond();
+        return Instant.now().plus(ttlHours, ChronoUnit.HOURS).getEpochSecond();
     }
 }

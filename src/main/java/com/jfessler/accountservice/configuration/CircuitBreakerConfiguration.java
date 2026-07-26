@@ -6,6 +6,8 @@ import com.jfessler.accountservice.model.Account;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,8 +19,13 @@ import org.springframework.dao.DataAccessException;
 public class CircuitBreakerConfiguration {
 
     @Bean
-    public CircuitBreakerRegistry circuitBreakerRegistry() {
-        return CircuitBreakerRegistry.ofDefaults();
+    public CircuitBreakerRegistry circuitBreakerRegistry(MeterRegistry meterRegistry) {
+        CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry.ofDefaults();
+
+        TaggedCircuitBreakerMetrics.ofCircuitBreakerRegistry(circuitBreakerRegistry)
+                .bindTo(meterRegistry);
+
+        return circuitBreakerRegistry;
     }
 
     @Bean

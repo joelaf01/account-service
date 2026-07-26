@@ -17,6 +17,9 @@ management:
       exposure:
         include:
           - health
+          - prometheus
+          - metrics
+          - info
   endpoint:
     health:
       show-details: never

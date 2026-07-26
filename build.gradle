@@ -21,38 +21,43 @@ repositories {
     mavenCentral()
 }
 
+ext {
+    resilience4jVersion = '2.4.0'
+}
+
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-    testImplementation platform('org.testcontainers:testcontainers-bom:1.20.4')
-    testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:postgresql'
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
-    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-    runtimeOnly 'org.postgresql:postgresql'
-    annotationProcessor 'org.projectlombok:lombok'
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-    testCompileOnly 'org.projectlombok:lombok'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testAnnotationProcessor 'org.projectlombok:lombok'
-    implementation 'org.springframework.boot:spring-boot-starter-flyway'
-    implementation 'org.flywaydb:flyway-database-postgresql'
-    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.4.0'
-    implementation(platform("software.amazon.awssdk:bom:2.48.0"))
-    implementation("software.amazon.awssdk:dynamodb-enhanced")
-    implementation("software.amazon.awssdk:secretsmanager")
-    implementation("software.amazon.awssdk:sts")
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-data-redis"
+    implementation "org.springframework.boot:spring-boot-starter-validation"
+    implementation "org.springframework.boot:spring-boot-starter-webmvc"
+    testImplementation platform("org.testcontainers:testcontainers-bom:1.20.4")
+    testImplementation "org.testcontainers:junit-jupiter"
+    testImplementation "org.testcontainers:postgresql"
+    testImplementation "org.springframework.boot:spring-boot-testcontainers"
+    compileOnly "org.projectlombok:lombok"
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+    developmentOnly "org.springframework.boot:spring-boot-docker-compose"
+    runtimeOnly "io.micrometer:micrometer-registry-prometheus"
+    runtimeOnly "org.postgresql:postgresql"
+    annotationProcessor "org.projectlombok:lombok"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    testImplementation "org.springframework.boot:spring-boot-starter-actuator-test"
+    testImplementation "org.springframework.boot:spring-boot-starter-data-jpa-test"
+    testImplementation "org.springframework.boot:spring-boot-starter-data-redis-test"
+    testImplementation "org.springframework.boot:spring-boot-starter-validation-test"
+    testImplementation "org.springframework.boot:spring-boot-starter-webmvc-test"
+    testCompileOnly "org.projectlombok:lombok"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    testAnnotationProcessor "org.projectlombok:lombok"
+    implementation "org.springframework.boot:spring-boot-starter-flyway"
+    implementation "org.flywaydb:flyway-database-postgresql"
+    implementation "io.github.resilience4j:resilience4j-circuitbreaker:${resilience4jVersion}"
+    implementation "io.github.resilience4j:resilience4j-micrometer:${resilience4jVersion}"
+    implementation platform("software.amazon.awssdk:bom:2.48.0")
+    implementation "software.amazon.awssdk:dynamodb-enhanced"
+    implementation "software.amazon.awssdk:secretsmanager"
+    implementation "software.amazon.awssdk:sts"
 }
 
 tasks.named('jar') {

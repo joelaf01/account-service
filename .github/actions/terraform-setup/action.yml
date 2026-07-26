@@ -10,6 +10,9 @@ inputs:
   wrapper:
     required: false
     default: 'false'
+  console-admin-arn:
+    required: false
+    default: ''
 runs:
   using: 'composite'
   steps:
@@ -32,6 +35,7 @@ runs:
         echo 'TF_VAR_availability_zones=["us-east-1a", "us-east-1b"]' >> "$GITHUB_ENV"
         echo 'TF_VAR_public_subnet_cidrs=["10.0.1.0/24", "10.0.2.0/24"]' >> "$GITHUB_ENV"
         echo 'TF_VAR_private_subnet_cidrs=["10.0.11.0/24", "10.0.12.0/24"]' >> "$GITHUB_ENV"
+        echo "TF_VAR_console_admin_principal_arn=${{ inputs.console-admin-arn }}" >> "$GITHUB_ENV"
 
     - name: Write backend config
       shell: bash

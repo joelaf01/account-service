@@ -47,3 +47,9 @@ variable "vpc_id" {
   description = "VPC ID the EKS cluster runs in"
   type = string
 }
+
+variable "console_admin_principal_arn" {
+  description = "IAM principal ARN to grant EKS cluster-admin access for local/console debugging. Leave empty to skip."
+  type        = string
+  default     = ""
+}

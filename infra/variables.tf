@@ -34,3 +34,9 @@ variable "database_name" {
   type        = string
   default     = "mydatabase"
 }
+
+variable "console_admin_principal_arn" {
+  description = "IAM principal ARN to grant EKS cluster-admin access for local/console debugging. Leave empty to skip."
+  type        = string
+  default     = ""
+}

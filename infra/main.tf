@@ -87,6 +87,8 @@ module "eks" {
 
   dirty_flag_table_arn  = module.dirty_flag.table_arn
   dirty_flag_table_name = module.dirty_flag.table_name
+
+  console_admin_principal_arn = var.console_admin_principal_arn
 }
 
 module "vpc" {

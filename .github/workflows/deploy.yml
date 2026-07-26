@@ -24,6 +24,7 @@ jobs:
           role-arn: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           state-bucket: ${{ secrets.TF_STATE_BUCKET }}
           project-name: ${{ vars.PROJECT_NAME }}
+          console-admin-arn: ${{ secrets.CONSOLE_ADMIN_PRINCIPAL_ARN }}
 
       - name: Terraform Apply (EKS cluster and Fargate profiles first)
         run: |

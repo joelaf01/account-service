@@ -225,13 +225,15 @@ resource "aws_iam_role_policy" "app_pod_dynamodb_access" {
 }
 
 resource "aws_eks_access_entry" "console_admin" {
+  count = var.console_admin_principal_arn != "" ? 1 : 0
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = "arn:aws:iam::003452293983:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AdministratorAccess_ca98fe56c6d4a0e4"
+  principal_arn = var.console_admin_principal_arn
 }
 
 resource "aws_eks_access_policy_association" "console_admin" {
+  count         = var.console_admin_principal_arn != "" ? 1 : 0
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = aws_eks_access_entry.console_admin.principal_arn
+  principal_arn = var.console_admin_principal_arn
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 
   access_scope {

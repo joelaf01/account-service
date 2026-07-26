@@ -31,6 +31,25 @@ spec:
               value: "true"
             - name: AWS_DYNAMODB_DIRTY_FLAG_TABLE
               value: "{{ .Values.env.dirtyFlagTable }}"
+          startupProbe:
+            httpGet:
+              port: 8080
+              path: /actuator/health/readiness
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              port: 8080
+              path: /actuator/health/liveness
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              port: 8080
+              path: /actuator/health/readiness
+            periodSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}

@@ -225,7 +225,7 @@ resource "aws_iam_role_policy" "app_pod_dynamodb_access" {
 }
 
 resource "aws_eks_access_entry" "console_admin" {
-  count = var.console_admin_principal_arn != "" ? 1 : 0
+  count         = var.console_admin_principal_arn != "" ? 1 : 0
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = var.console_admin_principal_arn
 }
@@ -239,4 +239,64 @@ resource "aws_eks_access_policy_association" "console_admin" {
   access_scope {
     type = "cluster"
   }
+}
+
+resource "kubernetes_namespace_v1" "aws_observability" {
+  metadata {
+    name = "aws-observability"
+    labels = {
+      "aws-observability" = "enabled"
+    }
+  }
+}
+
+resource "kubernetes_config_map_v1" "aws_logging" {
+  metadata {
+    name      = "aws-logging"
+    namespace = kubernetes_namespace_v1.aws_observability.metadata[0].name
+  }
+
+  data = {
+    "filters.conf" = <<-EOT
+      [FILTER]
+          Name kubernetes
+          Match kube.*
+          Merge_Log On
+          Keep_Log Off
+    EOT
+
+    "output.conf" = <<-EOT
+      [OUTPUT]
+          Name cloudwatch_logs
+          Match *
+          region us-east-1
+          log_group_name ${aws_cloudwatch_log_group.app.name}
+          log_stream_prefix fargate-
+          auto_create_group false
+    EOT
+  }
+}
+
+resource "aws_cloudwatch_log_group" "app" {
+  name              = "/eks/${var.project_name}"
+  retention_in_days = 7
+}
+
+resource "aws_iam_role_policy" "fargate_logging" {
+  name = "${var.project_name}-fargate-logging"
+  role = aws_iam_role.fargate_pod_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:CreateLogGroup",
+        "logs:DescribeLogStreams"
+      ]
+      Resource = ["${aws_cloudwatch_log_group.app.arn}:*"]
+    }]
+  })
 }

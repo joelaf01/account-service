@@ -18,7 +18,7 @@ public class AccountCacheService {
 
     public AccountCacheService(
             RedisTemplate<String, Account> accountRedisTemplate,
-            @Value("${account-service.cache.ttl-hours}") int ttlHours) {
+            @Value("${account-service.cache.ttl-hours:1}") int ttlHours) {
         this.accountRedisTemplate = accountRedisTemplate;
         this.ttlHours = ttlHours;
     }

@@ -37,12 +37,13 @@ public class ExceptionHandlers {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ProblemDetail methodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+        String detail = "Type mismatch for parameter '" + e.getParameter().getParameterName() + "' expected type: " + e.getRequiredType().getName();
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail httpMessageNotReadableException(HttpMessageNotReadableException e) {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request body is not readable");
     }
 
     @ExceptionHandler(Exception.class)

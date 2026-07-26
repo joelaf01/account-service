@@ -135,8 +135,7 @@ class AccountControllerTest {
                     .hasContentType("application/problem+json")
                     .bodyJson()
                     .extractingPath("detail")
-                    .isEqualTo("Method parameter 'id': Failed to convert value of type 'java.lang.String' " +
-                            "to required type 'java.util.UUID'; Invalid UUID string: invalidId");
+                    .isEqualTo("Type mismatch for parameter 'id' expected type: java.util.UUID");
         }
     }
 
@@ -262,8 +261,7 @@ class AccountControllerTest {
                     .hasContentType("application/problem+json")
                     .bodyJson()
                     .extractingPath("detail")
-                    .isEqualTo("Method parameter 'id': Failed to convert value of type 'java.lang.String' " +
-                            "to required type 'java.util.UUID'; Invalid UUID string: invalidId");
+                    .isEqualTo("Type mismatch for parameter 'id' expected type: java.util.UUID");
         }
 
         @Test
@@ -334,8 +332,7 @@ class AccountControllerTest {
                     .hasContentType("application/problem+json")
                     .bodyJson()
                     .extractingPath("detail")
-                    .isEqualTo("Method parameter 'id': Failed to convert value of type 'java.lang.String' " +
-                            "to required type 'java.util.UUID'; Invalid UUID string: invalidId");
+                    .isEqualTo("Type mismatch for parameter 'id' expected type: java.util.UUID");
         }
     }
 }

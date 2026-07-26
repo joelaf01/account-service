@@ -26,7 +26,7 @@ public class DirtyFlagService {
             DynamoDbEnhancedClient enhancedClient,
             @Value("${aws.dynamodb.dirty-flag-table}") String tableName,
             @Qualifier("dirtyFlagCircuitBreaker") CircuitBreaker dirtyFlagCircuitBreaker,
-            @Value("${account-service.dirty-flag.ttl-hours}") int ttlHours) {
+            @Value("${account-service.dirty-flag.ttl-hours:24}") int ttlHours) {
 
         this.ttlHours = ttlHours;
         this.dirtyFlagTable = enhancedClient.table(tableName, TableSchema.fromBean(DirtyFlag.class));

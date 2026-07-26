@@ -233,7 +233,7 @@ resource "aws_eks_access_entry" "console_admin" {
 resource "aws_eks_access_policy_association" "console_admin" {
   count         = var.console_admin_principal_arn != "" ? 1 : 0
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = var.console_admin_principal_arn
+  principal_arn = aws_eks_access_entry.console_admin[0].principal_arn
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 
   access_scope {

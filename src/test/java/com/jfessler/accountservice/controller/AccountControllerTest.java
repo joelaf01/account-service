@@ -154,7 +154,7 @@ class AccountControllerTest {
                             .uri("/account")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(accountRequest)))
-                    .hasStatusOk()
+                    .hasStatus(HttpStatus.CREATED)
                     .hasContentType("application/json")
                     .bodyJson()
                     .extractingPath("$.id")
@@ -168,9 +168,9 @@ class AccountControllerTest {
             AccountRequest accountRequest = new AccountRequest("name".repeat(100), Status.INACTIVE);
 
             assertThat(mockMvc.post()
-                    .uri("/account")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(accountRequest)))
+                            .uri("/account")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatus(HttpStatus.BAD_REQUEST)
                     .hasContentType("application/problem+json")
                     .bodyJson()
@@ -183,11 +183,12 @@ class AccountControllerTest {
             AccountRequest accountRequest = new AccountRequest("", Status.INACTIVE);
 
             assertThat(mockMvc.post()
-                    .uri("/account")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(accountRequest)))
+                            .uri("/account")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatus(HttpStatus.BAD_REQUEST)
-                    .hasContentType("application/problem+json").bodyJson()
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
                     .extractingPath("detail")
                     .isEqualTo("name: must not be blank");
         }
@@ -197,9 +198,9 @@ class AccountControllerTest {
             AccountRequest accountRequest = new AccountRequest("name", null);
 
             assertThat(mockMvc.post()
-                    .uri("/account")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(accountRequest)))
+                            .uri("/account")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatus(HttpStatus.BAD_REQUEST)
                     .hasContentType("application/problem+json")
                     .bodyJson()
@@ -270,9 +271,9 @@ class AccountControllerTest {
             AccountRequest accountRequest = new AccountRequest("name".repeat(100), Status.INACTIVE);
 
             assertThat(mockMvc.put()
-                    .uri("/account/" + id)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(accountRequest)))
+                            .uri("/account/" + id)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatus(HttpStatus.BAD_REQUEST)
                     .hasContentType("application/problem+json")
                     .bodyJson()
@@ -286,11 +287,12 @@ class AccountControllerTest {
             AccountRequest accountRequest = new AccountRequest("", Status.INACTIVE);
 
             assertThat(mockMvc.put()
-                    .uri("/account/" + id)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(accountRequest)))
+                            .uri("/account/" + id)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatus(HttpStatus.BAD_REQUEST)
-                    .hasContentType("application/problem+json").bodyJson()
+                    .hasContentType("application/problem+json")
+                    .bodyJson()
                     .extractingPath("detail")
                     .isEqualTo("name: must not be blank");
         }
@@ -301,9 +303,9 @@ class AccountControllerTest {
             AccountRequest accountRequest = new AccountRequest("name", null);
 
             assertThat(mockMvc.put()
-                    .uri("/account/" + id)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(accountRequest)))
+                            .uri("/account/" + id)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(accountRequest)))
                     .hasStatus(HttpStatus.BAD_REQUEST)
                     .hasContentType("application/problem+json")
                     .bodyJson()

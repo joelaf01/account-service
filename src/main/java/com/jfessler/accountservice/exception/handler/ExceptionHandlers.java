@@ -2,6 +2,7 @@ package com.jfessler.accountservice.exception.handler;
 
 import com.jfessler.accountservice.exception.AccountNotFoundException;
 import com.jfessler.accountservice.exception.FallbackExhaustedException;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -10,8 +11,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
@@ -37,7 +36,8 @@ public class ExceptionHandlers {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ProblemDetail methodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
-        String detail = "Type mismatch for parameter '" + e.getParameter().getParameterName() + "' expected type: " + e.getRequiredType().getName();
+        String detail = "Type mismatch for parameter '" + e.getParameter().getParameterName() + "' expected type: "
+                + e.getRequiredType().getName();
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
     }
 

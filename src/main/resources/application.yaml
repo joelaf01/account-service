@@ -12,6 +12,8 @@ spring:
     baseline-on-migrate: true
 
 management:
+  server:
+    port: 8081
   endpoints:
     web:
       exposure:

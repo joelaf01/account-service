@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -44,6 +45,11 @@ public class ExceptionHandlers {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail httpMessageNotReadableException(HttpMessageNotReadableException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Request body is not readable");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail noResourceFoundException(NoResourceFoundException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Resource not found");
     }
 
     @ExceptionHandler(Exception.class)

@@ -17,3 +17,8 @@ variable "github_repo" {
   description = "Github repository name"
   type        = string
 }
+
+variable "terraform_aws_cli_profile" {
+  description = "AWS CLI profile terraform will run as"
+  type = string
+}

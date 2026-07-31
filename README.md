@@ -63,7 +63,8 @@ and it has to be explicitly enabled.
 
 # Running Locally
 
-The application is configured to run locally through docker compose.
+The application is configured to run locally through docker compose. The docker compose gets its password for the 
+Postgres database from an externalized `.env` file. This file can be created by copying the included `.env.example`.
 
 Run with:
 
@@ -76,6 +77,25 @@ Teardown with:
 # Deploying to AWS
 
 The application and required infrastructure can be deployed to AWS using GitHub Actions.
+
+## Bootstrapping
+
+Prior to running the GitHub Actions they must be bootstrapped from your local machine using the `infra/bootstrap` 
+Terraform files. You will need to create a `terraform.tfvars` file for the bootstrap. See the provided example.
+
+Following bootstrapping you will need to create the following in your GitHub repo.
+
+### Secrets
+
+- AWS_GITHUB_ACTIONS_ROLE_ARN
+- TF_STATE_BUCKET
+- CONSOLE_ADMIN_PRINCIPAL_ARN (Optional)
+
+### Variables
+
+- PROJECT_NAME
+
+## GitHub Actions
 
 - CI: This workflow triggers whenever code is pushed up to the repo and runs through a Gradle build.
 - Deploy: This workflow uses Terraform to deploy all the infrastructure needed for the application to run in AWS

@@ -13,7 +13,7 @@ terraform {
 
 provider "aws" {
   region  = var.aws_region
-  profile = "terraform"
+  profile = var.terraform_aws_cli_profile
 }
 
 data "aws_caller_identity" "current" {}

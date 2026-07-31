@@ -1,0 +1,5 @@
+project_name = "account-service"
+aws_region   = "us-east-1"
+github_org   = "my-github"
+github_repo  = "account-service"
+terraform_aws_cli_profile = "terraform-profile"
